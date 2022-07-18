@@ -49,7 +49,7 @@ AMREX_GPU_MANAGED Real w[19] = {
   1./36.
 };
 
-const Real b[19] = {
+AMREX_GPU_MANAGED Real b[19] = {
   1.0,
   1./3.,
   1./3.,

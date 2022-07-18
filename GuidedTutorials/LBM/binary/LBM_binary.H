@@ -2,6 +2,7 @@
 #define LBM_H_
 
 #include "LBM_d3q19.H"
+#include <cmath>
 
 AMREX_GPU_MANAGED Real tau_r = 0.7886751345948129; // tau=0.5*(1.+1./sqrt(3.)) minimizes spurious currents according to Swift et al.
 AMREX_GPU_MANAGED Real tau_p = 1.0;
@@ -12,6 +13,10 @@ AMREX_GPU_MANAGED Real lambda = 1.1;
 AMREX_GPU_MANAGED Real T = 0.5;
 
 AMREX_GPU_MANAGED Real Gamma = 1.0;
+
+// Used in capillary wave initial condition. Equation is y = A*sin(l*x) in form
+AMREX_GPU_MANAGED Real A = 0.2; 
+AMREX_GPU_MANAGED Real l = 2.0;
 
 AMREX_GPU_MANAGED Real temperature = 0.0;
 
@@ -445,6 +450,50 @@ inline void LBM_init_flat_interface(const Geometry& geom,
     Real phi;
 
     if (rx < 0.) {
+      phi = 0.5;
+    } else {
+      phi = -0.5;
+    }
+
+    for (int i=0; i<nvel; i++) {
+      f[nbx](x,y,z,i) = w[i]*rho;
+      g[nbx](x,y,z,i) = w[i]*phi;
+    }
+
+  });
+  LBM_hydrovars(mf, mg, hydrovs);
+}
+
+// Capillary waves between C1 and C2
+inline void LBM_init_capillary_waves(const Geometry& geom,
+				    MultiFab& mf,
+				    MultiFab& mg,
+				    MultiFab& hydrovs) {
+  const IntVect box = geom.Domain().length();
+
+  //Real l= 2;
+  //Real A = 0.2;
+  const Real L = box[1]; 
+
+  auto const & f = mf.arrays();
+  auto const & g = mg.arrays();
+
+  GpuArray<Real,3> dx = geom.CellSizeArray();
+  ParallelFor(mf, IntVect(0), [=] AMREX_GPU_DEVICE(int nbx, int x, int y, int z) {
+    const Real rx = x-box[0]/2;
+    //const Real ry = y-box[1]/2;
+    const Real ry = y - (A*sin(l*(x/(L-1)*2*M_PI))*L/2 + L/2);
+#if (AMREX_SPACEDIM == 2)
+    const Real r2 = rx*rx+ry*ry;
+#elif (AMREX_SPACEDIM == 3)
+    const Real rz = z-box[0]/2;
+    const Real r2 = rx*rx+ry*ry+rz*rz;
+#endif
+
+    const Real rho=1.0;
+    Real phi;
+
+    if (ry < 0.) {
       phi = 0.5;
     } else {
       phi = -0.5;

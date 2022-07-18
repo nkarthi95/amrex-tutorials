@@ -5,6 +5,9 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_PlotFileUtil.H>
 
+#include <iostream>
+#include <fstream>
+
 using namespace amrex;
 
 #include "LBM_binary.H"
@@ -64,8 +67,23 @@ void main_driver(const char* argv) {
   int nsteps = 100;
   int plot_int = 10;
 
+  // default model parameters
+  // kappa = 0.01;
+  // T = 0.5;
+  // lambda = 1.1;
+
+  //initial conditions
+  int init_cond = 0;
+
   // default droplet radius (% of box size)
   Real radius = 0.3;
+
+  // default capillary waves
+  // A = 0.2;
+  // l = 2.0;
+
+  // default fluctations
+  // temperature = 0.0;
 
   // input parameters
   ParmParse pp;
@@ -73,9 +91,16 @@ void main_driver(const char* argv) {
   pp.query("max_grid_size", max_grid_size);
   pp.query("nsteps", nsteps);
   pp.query("plot_int", plot_int);
+  
   pp.query("lambda", lambda);
   pp.query("T", T);
   pp.query("kappa", kappa);
+
+  pp.query("init_cond", init_cond);
+  pp.query("wave_amplitude", A);
+  pp.query("n_waves", l);
+  pp.query("R_d", radius);
+
   pp.query("temperature", temperature);
 
   // set up Box and Geomtry
@@ -112,25 +137,46 @@ void main_driver(const char* argv) {
   // set up variable names for output
   const Vector<std::string> var_names = VariableNames(nhydro);
 
+  // setup output_file.txt
+  ofstream myfile;
+  myfile.open("output_file.txt");
+
   // INITIALIZE
-  LBM_init_flat_interface(geom, fold, gold, hydrovs);
+  if (init_cond == 0)
+  {
+    LBM_init_flat_interface(geom, fold, gold, hydrovs);
+  } else if (init_cond == 1)
+  {
+    LBM_init_capillary_waves(geom, fold, gold, hydrovs);
+  } else if (init_cond == 2)
+  {
+    LBM_init_droplet(radius, geom, fold, gold, hydrovs);
+  } else if (init_cond == 3)
+  {
+    LBM_init_mixture(fold, gold, hydrovs);
+  }
+  
+  //LBM_init_flat_interface(geom, fold, gold, hydrovs);
+  //LBM_init_capillary_waves(geom, fold, gold, hydrovs);
   // Write a plotfile of the initial data if plot_int > 0
   if (plot_int > 0)
     WriteOutput(0, hydrovs, var_names, geom);
-  Print() << "LB initialized\n";
+  // Print() << "LB initialized\n";
+  myfile << "LB initialized\n";
 
   // TIMESTEP
   for (int step=1; step <= nsteps; ++step) {
     LBM_timestep(geom, fold, gold, fnew, gnew, hydrovs);
     if (plot_int > 0 && step%plot_int ==0)
       WriteOutput(step, hydrovs, var_names, geom);
-    Print() << "LB step " << step << "\n";
+    // Print() << "LB step " << step << "\n";
+    myfile << "LB step " << step << "\n";
   }
 
   // Call the timer again and compute the maximum difference between the start time 
   // and stop time over all processors
   Real stop_time = ParallelDescriptor::second() - strt_time;
   ParallelDescriptor::ReduceRealMax(stop_time);
-  amrex::Print() << "Run time = " << stop_time << std::endl;
-  
+  // amrex::Print() << "Run time = " << stop_time << std::endl;
+  myfile << "Run time = " << stop_time << std::endl;
 }
