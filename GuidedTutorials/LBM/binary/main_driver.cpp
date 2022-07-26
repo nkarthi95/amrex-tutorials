@@ -95,6 +95,7 @@ void main_driver(const char* argv) {
   pp.query("lambda", lambda);
   pp.query("T", T);
   pp.query("kappa", kappa);
+  pp.query("tau", tau_p);
 
   pp.query("init_cond", init_cond);
   pp.query("wave_amplitude", A);
@@ -138,8 +139,8 @@ void main_driver(const char* argv) {
   const Vector<std::string> var_names = VariableNames(nhydro);
 
   // setup output_file.txt
-  ofstream myfile;
-  myfile.open("output_file.txt");
+  // ofstream myfile;
+  // myfile.open("output_file.txt");
 
   // INITIALIZE
   if (init_cond == 0)
@@ -161,22 +162,22 @@ void main_driver(const char* argv) {
   // Write a plotfile of the initial data if plot_int > 0
   if (plot_int > 0)
     WriteOutput(0, hydrovs, var_names, geom);
-  // Print() << "LB initialized\n";
-  myfile << "LB initialized\n";
+  Print() << "LB initialized\n";
+  // myfile << "LB initialized\n";
 
   // TIMESTEP
   for (int step=1; step <= nsteps; ++step) {
     LBM_timestep(geom, fold, gold, fnew, gnew, hydrovs);
     if (plot_int > 0 && step%plot_int ==0)
       WriteOutput(step, hydrovs, var_names, geom);
-    // Print() << "LB step " << step << "\n";
-    myfile << "LB step " << step << "\n";
+    Print() << "LB step " << step << "\n";
+    // myfile << "LB step " << step << "\n";
   }
 
   // Call the timer again and compute the maximum difference between the start time 
   // and stop time over all processors
   Real stop_time = ParallelDescriptor::second() - strt_time;
   ParallelDescriptor::ReduceRealMax(stop_time);
-  // amrex::Print() << "Run time = " << stop_time << std::endl;
-  myfile << "Run time = " << stop_time << std::endl;
+  amrex::Print() << "Run time = " << stop_time << std::endl;
+  // myfile << "Run time = " << stop_time << std::endl;
 }
