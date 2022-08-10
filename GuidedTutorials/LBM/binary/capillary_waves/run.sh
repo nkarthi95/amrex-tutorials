@@ -1,37 +1,44 @@
 #!/bin/bash
 
-L="1"
-T="0.500"
-k="0.005 0.01 0.02"
-lambdas="1.1"
-taus="0.8 1.0 1.2"
-nx=128
+tau_s="0.6 0.7 0.8 0.9 1.0 1.1 1.2"
+nsteps=1000
 
-for i in ${k};
+nx=64
+max_grid_size=${nx}
+
+for i in ${tau_s}
 do
-top_dir=${PWD}
-for j in ${T}; 
-do
-for l in ${L}
-do
-for lambda in ${lambdas}
-do
-for tau in ${taus}
-do
-#sed 's/^.*at/REPLACED/'
-#sed 's/^.*at/REPLACED/'
-sed -n -i 's/nsteps=1/nsteps=10000/p' inputs
-#    curr_dir=./damping/tau_${tau}/k_${i}/lambda_${lambda}/T_${j}/l_${l}
-#    mkdir -p ${curr_dir}
-    #cp main3d.gnu.MPI.ex ./${curr_dir}
-#    cp main3d.gnu.MPI.CUDA.ex ./${curr_dir}
-#    cd ./${curr_dir}
-    #mpirun -n 6./main3d.gnu.MPI.ex nx=128 nsteps=20000 plot_int=500 lambda=${lambda} n_waves=${l} T=${j} kappa=${i} temperature=0 init_cond=1
-#    ./main3d.gnu.MPI.CUDA.ex nx=${nx} max_grid_size=${nx} nsteps=20000 plot_int=500 lambda=${lambda} n_waves=${l} T=${j} kappa=${i} temperature=0 init_cond=1
-#    echo ${PWD}
-#    cd ${top_dir}
-done
-done
-done
-done
+
+curr_dir=${PWD}
+cp_dir="${curr_dir}/nu_test/tau_${i}"
+mkdir -p ${cp_dir}
+
+cp main3d.gnu.MPI.ex ${cp_dir}
+cp inputs ${cp_dir}
+
+#echo ${cp_dir}
+
+cd ${cp_dir}
+
+sed -i "s/nsteps = 1/nsteps = ${nsteps}/g" inputs
+sed -i "s/tau = 0.75/tau = ${i}/g" inputs
+sed -i "s/max_grid_size = 16/max_grid_size = ${max_grid_size}/g" inputs
+sed -i "s/nx = 64/nx = ${nx}/g" inputs
+
+mpirun -n 4 main3d.gnu.MPI.ex inputs
+
+#nx = 64
+#max_grid_size = 16
+
+#nsteps = 1
+#plot_int = 1000
+#ncorr = 100
+
+#density = 1.0
+#temperature = 0.111111e-6
+#tau = 0.75
+
+#A = 0.0
+
+cd ${curr_dir}
 done

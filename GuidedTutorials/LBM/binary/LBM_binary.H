@@ -493,11 +493,13 @@ inline void LBM_init_capillary_waves(const Geometry& geom,
     const Real rho=1.0;
     Real phi;
 
-    if (ry < 0.) {
-      phi = 0.5;
-    } else {
-      phi = -0.5;
-    }
+    phi = 0.5*tanh(ry/(20*kappa));
+
+    // if (ry < 0.) {
+    //   phi = 0.5;
+    // } else {
+    //   phi = -0.5;
+    // }
 
     for (int i=0; i<nvel; i++) {
       f[nbx](x,y,z,i) = w[i]*rho;
